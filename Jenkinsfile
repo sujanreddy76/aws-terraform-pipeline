@@ -25,7 +25,13 @@ pipeline {
             }
             steps {
                 echo 'executing the plan for our terraform code'
+                withCredentials([aws(
+                    accessKeyVariable: 'AWS_ACCESS_KEY_ID',
+                    credentialsId: 'aws_access_key_and_secret_key',
+                    secretKeyVariable: 'AWS_SECRET_ACCESS_KEY'
+                )]) {
                 sh 'terraform plan'
+                }
             }
         }
         //apply
