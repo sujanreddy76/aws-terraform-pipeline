@@ -18,6 +18,11 @@ pipeline {
         }
         //Plan
         stage('plan'){
+            when{
+               expression {
+                 params.ACTION == 'plan'
+               }
+            }
             steps {
                 echo 'executing the plan for our terraform code'
                 //terraform plan
@@ -25,6 +30,11 @@ pipeline {
         }
         //apply
         stage('apply'){
+            when{
+               expression {
+                 params.ACTION == 'apply'
+               }
+            }
             steps {
                 echo 'applying the terraform infra'
                 //terraform apply
@@ -32,6 +42,11 @@ pipeline {
         }
         //destroy
         stage('destroy'){
+            when{
+               expression {
+                 params.ACTION == 'destroy'
+               }
+            }
             steps {
                 echo 'destroying the terraform infra'
                 //terraform destroy
