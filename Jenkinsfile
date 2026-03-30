@@ -4,7 +4,7 @@ pipeline {
     }
     parameters{
         choice (
-            name: 'ACTION'
+            name: 'ACTION',
             choices: 'validate\ninit\nplan\napply\ndestroy'
         )
     }
