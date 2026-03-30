@@ -13,7 +13,7 @@ pipeline {
         stage('init'){
             steps {
                 echo 'initializing the terraform'
-                //terraform init
+                sh 'terraform init'
             }
         }
         //Plan
@@ -25,7 +25,7 @@ pipeline {
             }
             steps {
                 echo 'executing the plan for our terraform code'
-                //terraform plan
+                sh 'terraform plan'
             }
         }
         //apply
@@ -37,7 +37,7 @@ pipeline {
             }
             steps {
                 echo 'applying the terraform infra'
-                //terraform apply
+                sh 'terraform apply --auto-approve'
             }
         }
         //destroy
