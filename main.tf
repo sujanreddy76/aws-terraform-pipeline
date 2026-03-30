@@ -1,115 +1,84 @@
-provider "aws" {
-  region = "us-east-1"
-}
-
-//vpc
-resource "aws_vpc" "vpc-terraform" {
-  cidr_block           = "10.0.0.0/16"
+//VPC
+resource "aws_vpc" "tf_vpc" {
+  cidr_block           = var.vpc_cidr
   enable_dns_hostnames = true
-
   tags = {
-    Name = "vpc-terraform"
+    Name = var.vpc_name
   }
 }
-//igw
-resource "aws_internet_gateway" "igw-terraform" {
-  vpc_id = aws_vpc.vpc-terraform.id
+//IGW
+resource "aws_internet_gateway" "tf_igw" {
+  vpc_id = aws_vpc.tf_vpc.id
+
   tags = {
-    Name = "igw-terraform"
+    Name = var.igw_name
+  }
+}
+//Public Route Table
+resource "aws_route_table" "public_RT_tf" {
+  vpc_id = aws_vpc.tf_vpc.id
+  route {
+    cidr_block = var.pub_RT_route1_cidr
+    gateway_id = aws_internet_gateway.tf_igw.id
+
+  }
+  tags = {
+    Name = var.RT_name
   }
 
 }
 //Public Subnet
-resource "aws_subnet" "public-subnet-terraform" {
-  vpc_id     = aws_vpc.vpc-terraform.id
-  availability_zone  = "us-east-1a"
-  cidr_block = "10.0.1.0/24"
+resource "aws_subnet" "public-subnet-tf" {
+  vpc_id            = aws_vpc.tf_vpc.id
+  availability_zone = var.subnet_az
+  cidr_block        = var.subnet_cidr_block
 
   tags = {
-    Name = "public-subnet-terraform"
+    Name = var.subnet_name
   }
 }
-//Route Table
-resource "aws_route_table" "public-rt-terraform" {
-  vpc_id = aws_vpc.vpc-terraform.id
-
-  route {
-    cidr_block = "0.0.0.0/0"
-    gateway_id = aws_internet_gateway.igw-terraform.id
-  }
-
-  tags = {
-    Name    = "public-rt-terraform"
-    Service = "Terraform"
-  }
-}
-//Subnet-RouteTable-association
+//Public Subnet-Public RouteTable-association
 resource "aws_route_table_association" "a" {
-  subnet_id      = aws_subnet.public-subnet-terraform.id
-  route_table_id = aws_route_table.public-rt-terraform.id
+  subnet_id      = aws_subnet.public-subnet-tf.id
+  route_table_id = aws_route_table.public_RT_tf.id
 }
-//Security group
-resource "aws_security_group" "allow_all" {
-  name        = "allow_all"
-  description = "Allow all inbound traffic and all outbound traffic"
-  vpc_id      = aws_vpc.vpc-terraform.id
+//Security Group
+resource "aws_security_group" "tf_sg_allow_all" {
+  name   = "allow_all"
+  vpc_id = aws_vpc.tf_vpc.id
   ingress {
-    description = "Allow all"
     from_port   = 0
     to_port     = 0
-    //In AWS Security Groups: protocol = "-1" means: Allow ALL protocols
-    //When protocol = -1 Then from_port and to_port are ignored by AWS. Meaning: Allow all inbound traffic from anywhere on all ports and all protocols.
     protocol    = "-1"
-    cidr_blocks = ["0.0.0.0/0"]
-
+    cidr_blocks = var.sg_inbound_cidr_blocks
   }
   egress {
     from_port   = 0
     to_port     = 0
     protocol    = "-1"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
+    cidr_blocks = var.sg_outbound_cidr_blocks
 
+  }
   tags = {
-    Name = "allow_all"
+    Name = var.sg_name
   }
-}
-#create ssh keypair, combination of public and private key
-resource "tls_private_key" "jenkins-keys" {
-  algorithm = "RSA"
-  rsa_bits = 4096
-  
-}
-#Save the private key to local file
-resource "local_file" "jenkins-private-key" {
-    filename = "${path.module}/id_rsa"
-    content = tls_private_key.jenkins-keys.private_key_pem
-}
-#Save the public key to local file
-resource "local_file" "jenkins-public-key" {
-    filename = "${path.module}/id_rsa.pub"
-    content = tls_private_key.jenkins-keys.public_key_openssh 
-}
-resource "aws_key_pair" "jenkins_key" {
-  key_name   = "jenkins-key"
-  public_key = tls_private_key.jenkins-keys.public_key_openssh
-}
 
-
+}
 #ec2-instance
 resource "aws_instance" "terraform-instance" {
   ami                         = "ami-0b6c6ebed2801a5cb"
-  availability_zone           = "us-east-1a"
+  availability_zone           = var.ec2_az
   instance_type               = "t2.micro"
-  key_name                    = aws_key_pair.jenkins_key.key_name
-  subnet_id                   = aws_subnet.public-subnet-terraform.id
-  vpc_security_group_ids      = [aws_security_group.allow_all.id]
+  key_name                    = var.ec2_keypair_name
+  subnet_id                   = aws_subnet.public-subnet-tf.id
+  vpc_security_group_ids      = [aws_security_group.tf_sg_allow_all.id]
   associate_public_ip_address = true
   tags = {
-    Name       = "Server-1"
+    Name       = var.ec2-name
     Env        = "Prod"
     Owner      = "sai"
     CostCenter = "ABCD"
   }
 }
+
 
