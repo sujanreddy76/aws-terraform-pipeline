@@ -20,7 +20,7 @@ pipeline {
     stages{
         //Initialize terraform
         stage('init'){
-    steps {
+            steps {
         echo 'initializing the terraform'
         sh """
         terraform init \
@@ -28,8 +28,8 @@ pipeline {
           --backend-config="key=${ENVIRONMENT}.tfstate" \
           --backend-config="region=us-east-1"
         """
-    }
-}
+         }
+        }
         //Plan
         stage('plan'){
             when{
