@@ -24,11 +24,6 @@ pipeline {
 
         // Initialize terraform
         stage('init') {
-             when {
-    expression {
-        params.ACTION == 'plan' || params.ACTION == 'init' || params.ACTION == 'apply'
-    }
-}
             steps {
                 echo 'initializing the terraform'
                 withCredentials([aws(
@@ -36,12 +31,12 @@ pipeline {
                     credentialsId: 'aws_access_key_and_secret_key',
                     secretKeyVariable: 'AWS_SECRET_ACCESS_KEY'
                 )]) {
-                sh """
-                terraform init \
-                  --backend-config="bucket=${S3_BUCKET}" \
-                  --backend-config="key=${ENVIRONMENT}.tfstate" \
-                  --backend-config="region=us-east-1"
-                """
+                    sh """
+                    terraform init -input=false -reconfigure \
+                      --backend-config="bucket=${S3_BUCKET}" \
+                      --backend-config="key=${ENVIRONMENT}.tfstate" \
+                      --backend-config="region=us-east-1"
+                    """
                 }
             }
         }
