@@ -24,6 +24,11 @@ pipeline {
 
         // Initialize terraform
         stage('init') {
+             when {
+    expression {
+        params.ACTION == 'plan' || params.ACTION == 'init' || params.ACTION == 'apply'
+    }
+}
             steps {
                 echo 'initializing the terraform'
                 sh """
