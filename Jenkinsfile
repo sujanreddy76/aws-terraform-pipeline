@@ -18,11 +18,6 @@ pipeline {
     environment {
         S3_BUCKET = "iac-bucket0101"
         TFVARS_FILE = "${params.ENVIRONMENT}.tfvars"
-
-        // ✅ Added global AWS credentials
-        AWS_ACCESS_KEY_ID     = credentials('aws_access_key_id')
-        AWS_SECRET_ACCESS_KEY = credentials('aws_secret_access_key')
-        AWS_DEFAULT_REGION    = 'us-east-1'
     }
 
     stages {
@@ -31,12 +26,18 @@ pipeline {
         stage('init') {
             steps {
                 echo 'initializing the terraform'
-                sh """
-                terraform init -input=false -reconfigure \
-                  --backend-config="bucket=${S3_BUCKET}" \
-                  --backend-config="key=${ENVIRONMENT}.tfstate" \
-                  --backend-config="region=us-east-1"
-                """
+                withCredentials([aws(
+                    accessKeyVariable: 'AWS_ACCESS_KEY_ID',
+                    credentialsId: 'aws_access_key_and_secret_key',
+                    secretKeyVariable: 'AWS_SECRET_ACCESS_KEY'
+                )]) {
+                    sh """
+                    terraform init -input=false -reconfigure \
+                      --backend-config="bucket=${S3_BUCKET}" \
+                      --backend-config="key=${ENVIRONMENT}.tfstate" \
+                      --backend-config="region=us-east-1"
+                    """
+                }
             }
         }
 
@@ -49,7 +50,13 @@ pipeline {
             }
             steps {
                 echo 'executing the plan for our terraform code'
-                sh "terraform plan -var-file=${env.TFVARS_FILE}"
+                withCredentials([aws(
+                    accessKeyVariable: 'AWS_ACCESS_KEY_ID',
+                    credentialsId: 'aws_access_key_and_secret_key',
+                    secretKeyVariable: 'AWS_SECRET_ACCESS_KEY'
+                )]) {
+                    sh "terraform plan -var-file=${env.TFVARS_FILE}"
+                }
             }
         }
 
@@ -62,7 +69,13 @@ pipeline {
             }
             steps {
                 echo 'applying the terraform infra'
-                sh "terraform apply -var-file=${env.TFVARS_FILE} --auto-approve"
+                withCredentials([aws(
+                    accessKeyVariable: 'AWS_ACCESS_KEY_ID',
+                    credentialsId: 'aws_access_key_and_secret_key',
+                    secretKeyVariable: 'AWS_SECRET_ACCESS_KEY'
+                )]) {
+                    sh "terraform apply -var-file=${env.TFVARS_FILE} --auto-approve"
+                }
             }
         }
 
@@ -75,7 +88,13 @@ pipeline {
             }
             steps {
                 echo 'destroying the terraform infra'
-                sh "terraform destroy -var-file=${env.TFVARS_FILE} --auto-approve"
+                withCredentials([aws(
+                    accessKeyVariable: 'AWS_ACCESS_KEY_ID',
+                    credentialsId: 'aws_access_key_and_secret_key',
+                    secretKeyVariable: 'AWS_SECRET_ACCESS_KEY'
+                )]) {
+                    sh "terraform destroy -var-file=${env.TFVARS_FILE} --auto-approve"
+                }
             }
         }
     }
