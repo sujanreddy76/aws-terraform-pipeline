@@ -14,16 +14,22 @@ pipeline {
         )
     }
     environment {
+        S3_BUCKET="iac-bucket0101"
         TFVARS_FILE = "${params.ENVIRONMENT}.tfvars"
     }
     stages{
         //Initialize terraform
         stage('init'){
-            steps {
-                echo 'initializing the terraform'
-                sh 'terraform init'
-            }
-        }
+    steps {
+        echo 'initializing the terraform'
+        sh """
+        terraform init \
+          --backend-config="bucket=${S3_BUCKET}" \
+          --backend-config="key=${ENVIRONMENT}.tfstate" \
+          --backend-config="region=us-east-1"
+        """
+    }
+}
         //Plan
         stage('plan'){
             when{
@@ -38,7 +44,7 @@ pipeline {
                     credentialsId: 'aws_access_key_and_secret_key',
                     secretKeyVariable: 'AWS_SECRET_ACCESS_KEY'
                 )]) {
-                sh 'terraform plan'
+                sh "terraform plan -var-file=${env.TFVARS_FILE}"
                 }
             }
         }
@@ -51,7 +57,14 @@ pipeline {
             }
             steps {
                 echo 'applying the terraform infra'
-                sh 'terraform apply --auto-approve'
+                withCredentials([aws(
+                    accessKeyVariable: 'AWS_ACCESS_KEY_ID',
+                    credentialsId: 'aws_access_key_and_secret_key',
+                    secretKeyVariable: 'AWS_SECRET_ACCESS_KEY'
+                )]) {
+                sh "terraform apply -var-file=${env.TFVARS_FILE} --auto-approve"
+                }
+            }
             }
         }
         //destroy
@@ -63,7 +76,14 @@ pipeline {
             }
             steps {
                 echo 'destroying the terraform infra'
-                //terraform destroy
+                withCredentials([aws(
+                    accessKeyVariable: 'AWS_ACCESS_KEY_ID',
+                    credentialsId: 'aws_access_key_and_secret_key',
+                    secretKeyVariable: 'AWS_SECRET_ACCESS_KEY'
+                )]) {
+                sh "terraform destroy -var-file=${env.TFVARS_FILE} --auto-approve"
+                }
+            }
             }
         }
     }
