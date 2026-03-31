@@ -13,6 +13,9 @@ pipeline {
             choices: 'validate\ninit\nplan\napply\ndestroy'
         )
     }
+    environment {
+        TFVARS_FILE = "${params.ENVIRONMENT}.tfvars"
+    }
     stages{
         //Initialize terraform
         stage('init'){
