@@ -31,12 +31,18 @@ pipeline {
 }
             steps {
                 echo 'initializing the terraform'
+                withCredentials([aws(
+                    accessKeyVariable: 'AWS_ACCESS_KEY_ID',
+                    credentialsId: 'aws_access_key_and_secret_key',
+                    secretKeyVariable: 'AWS_SECRET_ACCESS_KEY'
+                )]) {
                 sh """
                 terraform init \
                   --backend-config="bucket=${S3_BUCKET}" \
                   --backend-config="key=${ENVIRONMENT}.tfstate" \
                   --backend-config="region=us-east-1"
                 """
+                }
             }
         }
 
